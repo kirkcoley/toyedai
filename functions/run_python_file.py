@@ -1,5 +1,6 @@
 import os
 import subprocess
+from google.genai import types
 
 def run_python_file(working_directory, file_path, args=[]):
     path = os.path.join(working_directory, file_path)
@@ -24,3 +25,22 @@ def run_python_file(working_directory, file_path, args=[]):
         return "No output produced."
     else:
         return f'STDOUT: {comp_proc.stdout}\nSTDERR: {comp_proc.stderr}'
+
+schema_run_python_file = types.FunctionDeclaration(
+        name="run_python_file",
+        description="Run a Python file at the specified location, constrained to the working directory.",
+        parameters=types.Schema(
+            type=types.Type.OBJECT,
+            properties={
+                "file_path": types.Schema(
+                    type=types.Type.STRING,
+                    description="The path to the target file.",
+                    ),
+                "args": types.Schema(
+                    type=types.Type.STRING,
+                    description="A list of arguments to be provided to the target python file.",
+                    ),
+                },
+            ),
+        )
+
