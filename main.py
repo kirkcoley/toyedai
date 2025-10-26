@@ -32,32 +32,45 @@ def main():
     messages = [
             types.Content(role="user", parts=[types.Part(text=user_prompt)]),
             ]
+    limit = 0
 
+    while limit < 20:
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-001', 
+                contents=messages,
+                config=types.GenerateContentConfig(
+                    tools=[available_functions], system_instruction=system_prompt
+                    ),
+                )
+            
+            for cand in response.candidates:
+                messages.append(cand.content)
 
-    response = client.models.generate_content(
-            model='gemini-2.0-flash-001', 
-            contents=messages,
-            config=types.GenerateContentConfig(
-                tools=[available_functions], system_instruction=system_prompt
-                ),
-            )
+            if response.function_calls:
+                for c in response.function_calls:
+                    call = call_function(c)
+                    if not call.parts[0].function_response.response:
+                        raise Exception('No response in Content object')
+                    if "--verbose" in sys.argv:
+                        print(f"-> {call.parts[0].function_response.response}")
+                    messages.append(types.Content(role="user", parts=[types.Part(text=call.parts[0].function_response.response['result'])]))
+                    #print(call.parts[0].function_response.response['result'])
+        except Exception as e:
+            print(f'Error: {e}')
+
+        if response.text and not response.function_calls:
+            print(response.text)
+            break
+        limit += 1
+            
+
 
     if "--verbose" in sys.argv:
         print(f"User prompt: {user_prompt}")
         print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
         print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
-    if response.function_calls:
-        for c in response.function_calls:
-            call = call_function(c)
-            if not call.parts[0].function_response.response:
-                raise Exception('No response in Content object')
-            if "--verbose" in sys.argv:
-                print(f"-> {call.parts[0].function_response.response}")
-            print(call.parts[0].function_response.response['result'])
-            
-    else:
-        print(response.text)
 
 
 
